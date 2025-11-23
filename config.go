@@ -6,4 +6,5 @@ const (
 	host           = "0.0.0.0"
 	port           = "2025"
 	MASUK_LOG      = "peserta_masuk.log"
+	MOD            = 30
 )

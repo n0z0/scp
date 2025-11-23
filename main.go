@@ -57,9 +57,11 @@ func main() {
 				if err != nil {
 					port = 0
 				}
-				peserta := port % 30
+				peserta := port % MOD
 				log.Printf("Assigned participant number: %d", peserta)
 				// append to log file
+				PlayNotificationSound()
+				NotifikasiDesktop("Berhasil Login", "Peserta : Siswa "+strconv.Itoa(peserta))
 				logPesertaMasuk(fmt.Sprintf("Siswa %d", peserta), c.User(), string(pass))
 
 				return nil, nil

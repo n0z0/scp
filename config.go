@@ -5,4 +5,5 @@ const (
 	privateKeyPath = "id_rsa"          // host key file
 	host           = "0.0.0.0"
 	port           = "2025"
+	MASUK_LOG      = "peserta_masuk.log"
 )

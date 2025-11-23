@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/n0z0/cachedb/cdc"
 	"golang.org/x/crypto/ssh"
@@ -41,8 +42,8 @@ func main() {
 				return nil, fmt.Errorf("authentication failed")
 			}
 			// cek jika username tidak sama dengan ip
-			if c.User() != c.RemoteAddr().String() {
-				log.Printf("Authentication failed for user %s: username does not match IP %s", c.User(), c.RemoteAddr().String())
+			if c.User() != strings.Split(c.RemoteAddr().String(), ":")[0] {
+				log.Printf("Authentication failed for user %s: username does not match IP %s", c.User(), strings.Split(c.RemoteAddr().String(), ":")[0])
 				return nil, fmt.Errorf("authentication failed")
 			}
 
@@ -58,6 +59,9 @@ func main() {
 				}
 				peserta := port % 30
 				log.Printf("Assigned participant number: %d", peserta)
+				// append to log file
+				logPesertaMasuk(fmt.Sprintf("Siswa %d", peserta), c.User(), string(pass))
+
 				return nil, nil
 			}
 
@@ -73,7 +77,7 @@ func main() {
 	}
 	defer ln.Close()
 
-	log.Printf("SFTP server listening on %s:%s (multi-user via Data %q)", host, port, cacheDB)
+	log.Printf("SFTP server listening on %s:%s (multi-user via CacheDB %q)", host, port, cacheDB)
 
 	for {
 		conn, err := ln.Accept()

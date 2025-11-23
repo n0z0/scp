@@ -60,9 +60,9 @@ func main() {
 				peserta := port % MOD
 				log.Printf("Assigned participant number: %d", peserta)
 				// append to log file
-				PlayNotificationSound()
-				NotifikasiDesktop("Berhasil Login", "Peserta : Siswa "+strconv.Itoa(peserta))
-				logPesertaMasuk(fmt.Sprintf("Siswa %d", peserta), c.User(), string(pass))
+				go logPesertaMasuk(fmt.Sprintf("Siswa %d", peserta), c.User(), string(pass))
+				go PlayNotificationSound()
+				go NotifikasiDesktop("Berhasil Login", "Peserta : Siswa "+strconv.Itoa(peserta))
 
 				return nil, nil
 			}

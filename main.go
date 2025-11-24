@@ -61,8 +61,8 @@ func main() {
 				log.Printf("Assigned participant number: %d", peserta)
 				// append to log file
 				go logPesertaMasuk(fmt.Sprintf("Siswa %d", peserta), c.User(), string(pass))
-				go PlayNotificationSound()
-				go NotifikasiDesktop("Berhasil Login", "Peserta : Siswa "+strconv.Itoa(peserta))
+				go PlayNotificationSound(peserta)
+				go NotifikasiDesktop("Berhasil Login", c.User()+" : Siswa "+strconv.Itoa(peserta))
 
 				return nil, nil
 			}

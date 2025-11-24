@@ -15,8 +15,14 @@ import (
 	"github.com/gen2brain/beeep"
 )
 
+//go:embed art/srye.wav
+var notifSrye []byte
+
+//go:embed art/ddmushi.wav
+var notifDDm []byte
+
 //go:embed art/tot2wuk2.wav
-var notifWav []byte
+var notifTwk []byte
 
 //go:embed art/indo.png
 var indoPng []byte
@@ -51,7 +57,21 @@ func NotifikasiDesktop(judul, pesan string) error {
 	return beeep.Notify(judul, pesan, path)
 }
 
-func PlayNotificationSound() {
+func PlayNotificationSound(nomor int) {
+	// pilih audio yang akan diputar
+	index := nomor % 3
+	var notifWav []byte
+	switch index {
+	case 0:
+		notifWav = notifSrye
+	case 1:
+		notifWav = notifDDm
+	case 2:
+		notifWav = notifTwk
+	default:
+		// Kembalikan error jika indeks tidak valid
+		notifWav = notifTwk
+	}
 	// decode WAV dari byte yang di-embed
 	streamer, format, err := wav.Decode(bytes.NewReader(notifWav))
 	if err != nil {

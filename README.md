@@ -5,6 +5,8 @@ USERNAME :  IP Adress
 Password : Port yang di scan  
 Membutuhkan synwatcher dan cacheDB
 
+Port yang di scan di Mod 30 =  Nomor urut
+
 ## release update
 
 ```sh

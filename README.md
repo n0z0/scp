@@ -1,6 +1,9 @@
 # scp
 
-SFTP Server
+SFTP Server dengan  
+USERNAME :  IP Adress  
+Password : Port yang di scan  
+Membutuhkan synwatcher dan cacheDB
 
 ## release update
 

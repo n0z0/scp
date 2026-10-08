@@ -46,6 +46,20 @@ Log ini memetakan event ke taktik dan teknik **MITRE ATT&CK**:
 - **Hapus File / Folder:** `Data Destruction` (`T1485`), Tactic: `Impact`.
 - **Rename File / Buat Folder:** `Masquerading` (`T1036`), Tactic: `Defense Evasion`.
 
+---
+
+## 🔬 Asynchronous Metadata Forensics Engine & Concurrency
+
+Ketika penyerang mengunggah file ke honeypot SFTP (`T1105`), `scp` secara otomatis menjalankan analisis forensik metadata secara **asinkron** menggunakan **bounded Goroutine worker pool** (`runtime.NumCPU() * 2` worker, buffered channel 1024):
+- **Zero Latency Impact:** Sesi transfer SFTP penyerang selesai secara instan (< 1ms) tanpa menunggu proses forensik selesai.
+- **Panic-Safe:** Seluruh parser dilindungi pemulihan (*recover*) otomatis sehingga berkas korup tidak akan menghentikan server.
+- **Dukungan Format Forensik:**
+  - **Dokumen Word / OpenXML (.docx):** Ekstraksi pembuat (*Author/Creator*), pengubah terakhir (*Last Modified By*), software pembuat (*Application/Word version*), dan stempel waktu UTC.
+  - **Dokumen PDF (.pdf):** Ekstraksi Title, Author, Creator, Producer tool, dan waktu modifikasi.
+  - **Gambar (JPEG / PNG / EXIF):** Ekstraksi model kamera/smartphone (`Make`, `Model`), software pengedit, dan **koordinat GPS fisik** (`GPSLatitude`, `GPSLongitude`) jika ada.
+  - **Executable Windows (PE .exe / .dll):** Ekstraksi path kompilasi debug PDB (*Program Database path*) yang sering membocorkan struktur folder dan username lokal di laptop pengembang malware penyerang!
+  - **Hashing:** Perhitungan SHA256 dan MD5 instan untuk lookup Threat Intelligence (VirusTotal / AlienVault OTX).
+
 ### Contoh Format Log CTI (`scp_cti.jsonl`)
 
 **1. Percobaan Login Berhasil:**

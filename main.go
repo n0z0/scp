@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -10,7 +11,16 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+var version = "dev"
+var showVersion = flag.Bool("version", false, "Tampilkan versi lalu keluar")
+
 func main() {
+	flag.Parse()
+	if *showVersion {
+		fmt.Println("scp", version)
+		return
+	}
+	log.Printf("[*] scp %s starting...", version)
 	// Connect to cache DB server
 	db, conn, err := cdc.Connect(cacheDB)
 	if err != nil {

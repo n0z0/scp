@@ -87,16 +87,37 @@ Log ini memetakan event ke taktik dan teknik **MITRE ATT&CK**:
 
 ---
 
+## Instalasi & Upgrade Otomatis
+
+### Windows (PowerShell)
+Jalankan perintah berikut untuk mengunduh binary rilis terbaru dan otomatis mendaftarkannya ke PATH pengguna:
+```powershell
+irm https://raw.githubusercontent.com/n0z0/scp/main/install.ps1 | iex
+```
+*(Bisa dijalankan kapan saja untuk upgrade ke versi terbaru).*
+
+### Linux (Bash)
+Jalankan perintah berikut di terminal:
+```bash
+curl -fsSL https://raw.githubusercontent.com/n0z0/scp/main/install.sh | bash
+```
+*(Binary otomatis dipasang sebagai `scp-server` ke `/usr/local/bin` atau `~/.local/bin` agar tidak bentrok dengan utilitas openSSH `scp` bawaan Linux).*
+
+---
+
 ## Menjalankan Server
 
 ### Kebutuhan
 1. **[cacheDB](https://github.com/n0z0/cachedb)** aktif di `127.0.0.1:50051`.
 2. **[synwatcher](https://github.com/n0z0/synwatcher)** aktif memantau interface jaringan target.
 
-### Build & Run
+### Menjalankan Langsung
 ```powershell
-go build -o scp.exe .
-.\scp.exe
+# Windows
+scp
+
+# Linux
+scp-server
 ```
 
 Server akan otomatis:
@@ -110,6 +131,14 @@ Server akan otomatis:
 sftp -P 60606 192.168.1.150@<IP_HONEYPOT>
 # Masukkan password: 80
 ```
+
+---
+
+## Release
+
+Release dibuat otomatis oleh [GitHub Actions](.github/workflows/release.yml) setiap kali ada push ke branch `main`:
+- Versi patch dinaikkan secara otomatis dari tag terakhir (misal `v0.1.1` -> `v0.1.2`).
+- Binary langsung siap pakai (`scp_windows_amd64.exe` dan `scp_linux_amd64`) serta arsip bundel di-upload langsung ke halaman Releases.
 
 ---
 

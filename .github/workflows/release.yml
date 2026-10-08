@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Jenis kenaikan versi"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Pasang dependensi audio Linux (ALSA)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev
+
+      - name: Vet
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: go vet ./...
+
+      - name: Tentukan versi
+        id: ver
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            LAST=$(git tag --list 'v*.*.*' --sort=-v:refname | head -n1)
+            LAST=${LAST:-v0.0.0}
+            IFS=. read -r MAJ MIN PAT <<< "${LAST#v}"
+            case "${{ inputs.bump }}" in
+              major) MAJ=$((MAJ+1)); MIN=0; PAT=0 ;;
+              minor) MIN=$((MIN+1)); PAT=0 ;;
+              *)     PAT=$((PAT+1)) ;;
+            esac
+            VERSION="v${MAJ}.${MIN}.${PAT}"
+            echo "Tag terakhir: ${LAST} -> versi baru: ${VERSION}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build binary Windows
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          NAME="scp_${VERSION}_windows_amd64"
+          mkdir -p "build/${NAME}"
+          GOOS=windows GOARCH=amd64 go build -trimpath \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "build/${NAME}/scp.exe" .
+          cp "build/${NAME}/scp.exe" "dist/scp_windows_amd64.exe"
+          cp README.md LICENSE install.ps1 "build/${NAME}/"
+          (cd build && zip -qr "../dist/${NAME}.zip" "${NAME}")
+
+      - name: Build binary Linux amd64
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          CGO_ENABLED: "1" # Di Linux, audio driver oto/alsa butuh cgo
+        run: |
+          NAME="scp_${VERSION}_linux_amd64"
+          mkdir -p "build/${NAME}"
+          GOOS=linux GOARCH=amd64 go build -trimpath \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "build/${NAME}/scp-server" .
+          cp "build/${NAME}/scp-server" "dist/scp_linux_amd64"
+          cp README.md LICENSE install.sh "build/${NAME}/"
+          tar -czf "dist/${NAME}.tar.gz" -C build "${NAME}"
+          (cd dist && sha256sum * > checksums.txt)
+          ls -l dist
+
+      - name: Buat tag (push ke main / tombol)
+        if: github.ref_type != 'tag'
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${VERSION}" -m "Release ${VERSION}"
+          git push origin "${VERSION}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/*
+          body: |
+            ## Cara pakai
+            1. Pastikan [cacheDB](https://github.com/n0z0/cachedb) berjalan di `127.0.0.1:50051`.
+            2. Jalankan `synwatcher` untuk memantau scan port penyerang.
+            3. Jalankan `scp` (server mendengarkan di port `60606`).
+            4. Klien terhubung via: `sftp -P 60606 <IP_KLIEN>@<IP_SERVER>`

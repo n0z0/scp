@@ -62,7 +62,7 @@ Ketika penyerang mengunggah file ke honeypot SFTP (`T1105`), `scp` secara otomat
 
 ### Contoh Format Log CTI (`scp_cti.jsonl`)
 
-**1. Percobaan Login Berhasil:**
+**1. Percobaan Login Berhasil (Terkorelasi dengan Reconnaissance L4 dari synwatcher & cachedb):**
 ```json
 {
   "timestamp": "2026-10-08T02:08:15.123456789Z",
@@ -72,9 +72,21 @@ Ketika penyerang mengunggah file ke honeypot SFTP (`T1105`), `scp` secara otomat
   "client_ip": "192.168.1.150",
   "client_port": 54321,
   "username": "192.168.1.150",
-  "password": "80",
+  "password": "8080",
   "client_version": "SSH-2.0-OpenSSH_9.6",
   "participant_number": 20,
+  "recon_profile": {
+    "syn_hash": "a8f5c389e63470123efb69201a0912cb",
+    "risk_score": "90",
+    "severity": "CRITICAL",
+    "target_service": "RDP",
+    "intent_category": "REMOTE_DESKTOP_EXPLOITATION_PROBE",
+    "scan_velocity": "BURST_AUTOMATED_SCAN",
+    "estimated_os": "Linux / Android / macOS",
+    "scanner_tool": "Nmap (Stealth SYN Scan)",
+    "scan_hits": "8",
+    "last_scan": "2026-10-08T02:08:14.990Z"
+  },
   "mitre_attack": {
     "tactic": "Initial Access",
     "technique": "Valid Accounts: Default/Known Accounts",

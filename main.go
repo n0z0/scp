@@ -60,19 +60,19 @@ func main() {
 			storedPassword, err := cdc.Get(c.User(), db)
 			if err != nil {
 				log.Printf("Authentication failed for user %s: user not found", c.User())
-				go logCTIAuth("failed", "user_not_found_in_cache", remoteHost, remotePort, c.User(), string(pass), clientVer, 0)
+				go logCTIAuth("failed", "user_not_found_in_cache", remoteHost, remotePort, c.User(), string(pass), clientVer, 0, db)
 				return nil, fmt.Errorf("authentication failed")
 			}
 			// cek password kosong
 			if storedPassword == "" {
 				log.Printf("Authentication failed for user %s: empty password", c.User())
-				go logCTIAuth("failed", "empty_password_in_cache", remoteHost, remotePort, c.User(), string(pass), clientVer, 0)
+				go logCTIAuth("failed", "empty_password_in_cache", remoteHost, remotePort, c.User(), string(pass), clientVer, 0, db)
 				return nil, fmt.Errorf("authentication failed")
 			}
 			// cek jika username tidak sama dengan ip
 			if c.User() != remoteHost {
 				log.Printf("Authentication failed for user %s: username does not match IP %s", c.User(), remoteHost)
-				go logCTIAuth("failed", "username_ip_mismatch", remoteHost, remotePort, c.User(), string(pass), clientVer, 0)
+				go logCTIAuth("failed", "username_ip_mismatch", remoteHost, remotePort, c.User(), string(pass), clientVer, 0, db)
 				return nil, fmt.Errorf("authentication failed")
 			}
 
@@ -90,7 +90,7 @@ func main() {
 				log.Printf("Assigned participant number: %d", peserta)
 				// append to log file & CTI log
 				go logPesertaMasuk(fmt.Sprintf("Siswa %d", peserta), c.User(), string(pass))
-				go logCTIAuth("success", "", remoteHost, remotePort, c.User(), string(pass), clientVer, peserta)
+				go logCTIAuth("success", "", remoteHost, remotePort, c.User(), string(pass), clientVer, peserta, db)
 				go PlayNotificationSound(peserta)
 				go NotifikasiDesktop("Berhasil Login", c.User()+" : Siswa "+strconv.Itoa(peserta))
 
@@ -107,7 +107,7 @@ func main() {
 			}
 
 			log.Printf("%s Authentication failed for user %s: invalid password %s", storedPassword, c.User(), string(pass))
-			go logCTIAuth("failed", "invalid_password", remoteHost, remotePort, c.User(), string(pass), clientVer, 0)
+			go logCTIAuth("failed", "invalid_password", remoteHost, remotePort, c.User(), string(pass), clientVer, 0, db)
 			return nil, fmt.Errorf("authentication failed")
 		},
 	}

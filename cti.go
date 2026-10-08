@@ -7,21 +7,39 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/n0z0/cachedb/cdc"
+	"github.com/n0z0/cachedb/proto/cachepb"
 )
+
+// ReconProfileInfo menyimpan korelasi metadata hasil pengintaian jaringan L4 (dari synwatcher via cachedb)
+type ReconProfileInfo struct {
+	SYNFingerprintHash string `json:"syn_hash,omitempty"`
+	RiskScore          string `json:"risk_score,omitempty"`
+	Severity           string `json:"severity,omitempty"`
+	TargetService      string `json:"target_service,omitempty"`
+	IntentCategory     string `json:"intent_category,omitempty"`
+	ScanVelocity       string `json:"scan_velocity,omitempty"`
+	EstimatedOS        string `json:"estimated_os,omitempty"`
+	ScannerTool        string `json:"scanner_tool,omitempty"`
+	ScanHits           string `json:"scan_hits,omitempty"`
+	LastScan           string `json:"last_scan,omitempty"`
+}
 
 // SCPCTIEvent mencatat aktivitas interaksi otentikasi honeypot SFTP dan manipulasi file
 type SCPCTIEvent struct {
-	Timestamp      string          `json:"timestamp"` // ISO 8601 UTC
-	SensorID       string          `json:"sensor_id"`
-	EventType      string          `json:"event_type"` // SFTP_LOGIN_SUCCESS, SFTP_AUTH_FAILED, SFTP_FILE_ACTIVITY
-	Status         string          `json:"status"`     // success, failed
-	FailureReason  string          `json:"failure_reason,omitempty"`
-	ClientIP       string          `json:"client_ip"`
-	ClientPort     int             `json:"client_port"`
-	Username       string          `json:"username"`
-	Password       string          `json:"password,omitempty"`
-	ClientVersion  string          `json:"client_version,omitempty"`
-	ParticipantNum int             `json:"participant_number,omitempty"`
+	Timestamp      string             `json:"timestamp"` // ISO 8601 UTC
+	SensorID       string             `json:"sensor_id"`
+	EventType      string             `json:"event_type"` // SFTP_LOGIN_SUCCESS, SFTP_AUTH_FAILED, SFTP_FILE_ACTIVITY
+	Status         string             `json:"status"`     // success, failed
+	FailureReason  string             `json:"failure_reason,omitempty"`
+	ClientIP       string             `json:"client_ip"`
+	ClientPort     int                `json:"client_port"`
+	Username       string             `json:"username"`
+	Password       string             `json:"password,omitempty"`
+	ClientVersion  string             `json:"client_version,omitempty"`
+	ParticipantNum int                `json:"participant_number,omitempty"`
+	ReconProfile   *ReconProfileInfo  `json:"recon_profile,omitempty"`
 	FileActivity   *FileActivity      `json:"file_activity,omitempty"`
 	FileForensics  *FileForensicsData `json:"file_forensics,omitempty"`
 	Mitre          MitreAttackInfo    `json:"mitre_attack"`
@@ -157,7 +175,7 @@ func (l *CTILogger) LogEvent(event *SCPCTIEvent) {
 	}
 }
 
-func logCTIAuth(status, reason, clientIP string, clientPort int, username, password, clientVer string, participantNum int) {
+func logCTIAuth(status, reason, clientIP string, clientPort int, username, password, clientVer string, participantNum int, db cachepb.CacheClient) {
 	if ctiLogger == nil {
 		return
 	}
@@ -177,6 +195,27 @@ func logCTIAuth(status, reason, clientIP string, clientPort int, username, passw
 		techniqueID = "T1078"
 	}
 
+	var recon *ReconProfileInfo
+	if db != nil {
+		if dossier, found, err := cdc.GetActor(clientIP, db); err == nil && found && dossier != nil {
+			recon = &ReconProfileInfo{
+				SYNFingerprintHash: dossier.SynHash,
+				RiskScore:          dossier.RiskScore,
+				Severity:           dossier.Severity,
+				TargetService:      dossier.TargetService,
+				IntentCategory:     dossier.IntentCategory,
+				ScanVelocity:       dossier.ScanVelocity,
+				EstimatedOS:        dossier.EstimatedOs,
+				ScannerTool:        dossier.ScannerTool,
+				ScanHits:           dossier.ScanHits,
+				LastScan:           dossier.LastActivity,
+			}
+			if status == "success" && recon.Severity != "" {
+				log.Printf("[SOC] Terkorelasi Threat Actor %s (Risk: %s [%s], Tool: %s, SYN-Hash: %s) berhasil login SFTP", clientIP, recon.RiskScore, recon.Severity, recon.ScannerTool, recon.SYNFingerprintHash)
+			}
+		}
+	}
+
 	event := &SCPCTIEvent{
 		Timestamp:      time.Now().UTC().Format(time.RFC3339Nano),
 		SensorID:       hostname,
@@ -189,6 +228,7 @@ func logCTIAuth(status, reason, clientIP string, clientPort int, username, passw
 		Password:       password,
 		ClientVersion:  clientVer,
 		ParticipantNum: participantNum,
+		ReconProfile:   recon,
 		Mitre: MitreAttackInfo{
 			Tactic:    "Initial Access",
 			Technique: technique,

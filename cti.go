@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,11 +33,13 @@ type ReconProfileInfo struct {
 type SCPCTIEvent struct {
 	Timestamp      string             `json:"timestamp"` // ISO 8601 UTC
 	SensorID       string             `json:"sensor_id"`
+	SessionID      string             `json:"session_id,omitempty"`
 	EventType      string             `json:"event_type"` // SFTP_LOGIN_SUCCESS, SFTP_AUTH_FAILED, SFTP_FILE_ACTIVITY
 	Status         string             `json:"status"`     // success, failed
 	FailureReason  string             `json:"failure_reason,omitempty"`
 	ClientIP       string             `json:"client_ip"`
 	ClientPort     int                `json:"client_port"`
+	ReverseDNS     string             `json:"reverse_dns,omitempty"`
 	Username       string             `json:"username"`
 	Password       string             `json:"password,omitempty"`
 	ClientVersion  string             `json:"client_version,omitempty"`
@@ -196,7 +201,25 @@ func logCTIAuth(status, reason, clientIP string, clientPort int, username, passw
 	}
 
 	var recon *ReconProfileInfo
+	var rDNS string
+	if clientIP != "" && clientIP != "127.0.0.1" && clientIP != "::1" {
+		ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
+		var r net.Resolver
+		if names, err := r.LookupAddr(ctx, clientIP); err == nil && len(names) > 0 {
+			rDNS = strings.TrimSuffix(names[0], ".")
+		}
+		cancel()
+	}
+
 	if db != nil {
+		if rDNS != "" {
+			_ = cdc.Set("actor:rdns:"+clientIP, rDNS, db)
+		}
+		if status == "success" {
+			_ = cdc.Set("actor:intent:"+clientIP, "INITIAL_ACCESS_SFTP_SUCCESS", db)
+			_ = cdc.Set("actor:risk:"+clientIP, "95", db)
+			_ = cdc.Set("actor:severity:"+clientIP, "CRITICAL", db)
+		}
 		if dossier, found, err := cdc.GetActor(clientIP, db); err == nil && found && dossier != nil {
 			recon = &ReconProfileInfo{
 				SYNFingerprintHash: dossier.SynHash,
@@ -224,6 +247,7 @@ func logCTIAuth(status, reason, clientIP string, clientPort int, username, passw
 		FailureReason:  reason,
 		ClientIP:       clientIP,
 		ClientPort:     clientPort,
+		ReverseDNS:     rDNS,
 		Username:       username,
 		Password:       password,
 		ClientVersion:  clientVer,

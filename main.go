@@ -43,6 +43,10 @@ func main() {
 		log.Printf("[*] CTI Logging aktif -> %s", CTI_LOG)
 	}
 
+	// Inisialisasi Forensics Engine (Worker Pool Goroutine untuk analisis metadata DOCX/PDF/EXIF/dll)
+	forensicsEngine := initForensicsEngine(0, db)
+	defer forensicsEngine.Close()
+
 	// PasswordCallback membaca dari Cache DB **setiap kali login** (hot-reload user)
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {

@@ -125,6 +125,12 @@ func (tw *trackingWriter) Close() error {
 		reason = err.Error()
 	}
 	logCTIFileActivity(tw.handler.clientIP, tw.handler.clientPort, tw.handler.username, tw.handler.clientVer, tw.handler.participantNum, "UPLOAD", tw.reqPath, "", tw.written, status, reason)
+
+	// Non-blocking asynchronous metadata forensics extraction via Worker Pool
+	if err == nil && tw.written > 0 {
+		enqueueForensicsJob(tw.handler.toRealPath(tw.reqPath), tw.reqPath, tw.handler.clientIP, tw.handler.clientPort, tw.handler.username, tw.handler.clientVer, tw.handler.participantNum, tw.written)
+	}
+
 	return err
 }
 

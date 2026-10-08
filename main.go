@@ -8,11 +8,13 @@ import (
 	"strconv"
 
 	"github.com/n0z0/cachedb/cdc"
+	"github.com/n0z0/cachedb/proto/cachepb"
 	"golang.org/x/crypto/ssh"
 )
 
 var version = "dev"
 var showVersion = flag.Bool("version", false, "Tampilkan versi lalu keluar")
+var globalCacheDB cachepb.CacheClient
 
 func main() {
 	flag.Parse()
@@ -27,6 +29,7 @@ func main() {
 		log.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close()
+	globalCacheDB = db
 
 	// Siapkan host key
 	privateKey, err := generateHostKey(privateKeyPath)

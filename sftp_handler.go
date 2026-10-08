@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/n0z0/cachedb/cdc"
 	"github.com/pkg/sftp"
 )
 
@@ -93,6 +94,17 @@ func (h *CTIFileHandler) Fileread(r *sftp.Request) (io.ReaderAt, error) {
 
 	log.Printf("[SFTP] User %s membaca/mengunduh: %s (size: %d bytes)", h.username, r.Filepath, size)
 	logCTIFileActivity(h.clientIP, h.clientPort, h.username, h.clientVer, h.participantNum, "DOWNLOAD", r.Filepath, "", size, "success", "")
+
+	// Asinkron via Goroutine: daftarkan kepemilikan token file ke CacheDB untuk atribusi de-anonymization di lemes
+	if globalCacheDB != nil {
+		go func(fname, clientIP string) {
+			baseName := filepath.Base(fname)
+			_ = cdc.Set("token:owner:"+baseName, clientIP, globalCacheDB)
+			_ = cdc.Set("token:download:"+baseName, clientIP, globalCacheDB)
+			_ = cdc.Set("actor:last_download:"+clientIP, baseName, globalCacheDB)
+		}(r.Filepath, h.clientIP)
+	}
+
 	return f, nil
 }
 

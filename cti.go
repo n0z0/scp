@@ -180,6 +180,25 @@ func (l *CTILogger) LogEvent(event *SCPCTIEvent) {
 	}
 }
 
+var rdnsCache sync.Map
+
+func resolveReverseDNS(ipStr string) string {
+	if val, ok := rdnsCache.Load(ipStr); ok {
+		return val.(string)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
+	defer cancel()
+
+	var r net.Resolver
+	var host string
+	names, err := r.LookupAddr(ctx, ipStr)
+	if err == nil && len(names) > 0 {
+		host = strings.TrimSuffix(names[0], ".")
+	}
+	rdnsCache.Store(ipStr, host)
+	return host
+}
+
 func logCTIAuth(status, reason, clientIP string, clientPort int, username, password, clientVer string, participantNum int, db cachepb.CacheClient) {
 	if ctiLogger == nil {
 		return
@@ -203,12 +222,7 @@ func logCTIAuth(status, reason, clientIP string, clientPort int, username, passw
 	var recon *ReconProfileInfo
 	var rDNS string
 	if clientIP != "" && clientIP != "127.0.0.1" && clientIP != "::1" {
-		ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
-		var r net.Resolver
-		if names, err := r.LookupAddr(ctx, clientIP); err == nil && len(names) > 0 {
-			rDNS = strings.TrimSuffix(names[0], ".")
-		}
-		cancel()
+		rDNS = resolveReverseDNS(clientIP)
 	}
 
 	if db != nil {

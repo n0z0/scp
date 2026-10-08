@@ -8,6 +8,7 @@
 *.so
 *.dylib
 *.log
+*.jsonl
 id_rsa
 
 # Test binary, built with `go test -c`

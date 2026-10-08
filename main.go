@@ -120,6 +120,7 @@ func main() {
 	defer ln.Close()
 
 	log.Printf("SFTP server listening on %s:%s (multi-user via CacheDB %q)", host, port, cacheDB)
+	printNetworkInterfaces(port)
 
 	for {
 		conn, err := ln.Accept()
@@ -129,4 +130,57 @@ func main() {
 		}
 		go handleConn(conn, config)
 	}
+}
+
+func printNetworkInterfaces(serverPort string) {
+	fmt.Println()
+	fmt.Println("==================================================================")
+	fmt.Printf("  SCP / SFTP Deception & Forensics Server (v%s) Berjalan\n", version)
+	fmt.Println("==================================================================")
+	fmt.Println("  [Akses Localhost]:")
+	fmt.Printf("    * sftp -P %s <IP_KLIEN>@localhost\n", serverPort)
+	fmt.Printf("    * sftp -P %s <IP_KLIEN>@127.0.0.1\n", serverPort)
+	fmt.Println()
+	fmt.Println("  [Akses Jaringan - Semua Network Interfaces / IP Address]:")
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		fmt.Printf("    [!] Gagal mendeteksi network interfaces: %v\n", err)
+	} else {
+		foundAny := false
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+				if ip == nil || ip.IsLoopback() {
+					continue
+				}
+				if ipv4 := ip.To4(); ipv4 != nil {
+					foundAny = true
+					fmt.Printf("    * %s (IP: %s):\n", iface.Name, ipv4.String())
+					fmt.Printf("        SFTP : sftp -P %s <IP_KLIEN>@%s\n", serverPort, ipv4.String())
+					fmt.Printf("        SCP  : scp -P %s <FILE> <IP_KLIEN>@%s:\n", serverPort, ipv4.String())
+				}
+			}
+		}
+		if !foundAny {
+			fmt.Println("    (Tidak ada interface IPv4 non-loopback yang aktif)")
+		}
+	}
+	fmt.Println("==================================================================")
+	fmt.Printf("  Port: %s | CacheDB: %s | Log CTI: %s\n", serverPort, cacheDB, CTI_LOG)
+	fmt.Println("==================================================================")
+	fmt.Println()
 }

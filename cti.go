@@ -9,20 +9,28 @@ import (
 	"time"
 )
 
-// SCPCTIEvent mencatat aktivitas interaksi otentikasi honeypot SFTP
+// SCPCTIEvent mencatat aktivitas interaksi otentikasi honeypot SFTP dan manipulasi file
 type SCPCTIEvent struct {
 	Timestamp      string          `json:"timestamp"` // ISO 8601 UTC
 	SensorID       string          `json:"sensor_id"`
-	EventType      string          `json:"event_type"` // SFTP_LOGIN_SUCCESS, SFTP_AUTH_FAILED
+	EventType      string          `json:"event_type"` // SFTP_LOGIN_SUCCESS, SFTP_AUTH_FAILED, SFTP_FILE_ACTIVITY
 	Status         string          `json:"status"`     // success, failed
 	FailureReason  string          `json:"failure_reason,omitempty"`
 	ClientIP       string          `json:"client_ip"`
 	ClientPort     int             `json:"client_port"`
 	Username       string          `json:"username"`
-	Password       string          `json:"password"`
+	Password       string          `json:"password,omitempty"`
 	ClientVersion  string          `json:"client_version,omitempty"`
 	ParticipantNum int             `json:"participant_number,omitempty"`
+	FileActivity   *FileActivity   `json:"file_activity,omitempty"`
 	Mitre          MitreAttackInfo `json:"mitre_attack"`
+}
+
+type FileActivity struct {
+	Action string `json:"action"` // UPLOAD, DOWNLOAD, LIST_DIR, STAT, DELETE, RENAME, MKDIR, RMDIR
+	Path   string `json:"path"`
+	Target string `json:"target_path,omitempty"` // untuk rename/symlink
+	Size   int64  `json:"size_bytes,omitempty"`
 }
 
 type MitreAttackInfo struct {
@@ -105,6 +113,70 @@ func logCTIAuth(status, reason, clientIP string, clientPort int, username, passw
 		ParticipantNum: participantNum,
 		Mitre: MitreAttackInfo{
 			Tactic:    "Initial Access",
+			Technique: technique,
+			ID:        techniqueID,
+		},
+	}
+
+	ctiLogger.LogEvent(event)
+}
+
+func logCTIFileActivity(clientIP string, clientPort int, username, clientVer string, participantNum int, action, path, target string, size int64, status, reason string) {
+	if ctiLogger == nil {
+		return
+	}
+
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "scp-honeypot"
+	}
+
+	tactic := "Execution"
+	technique := "File and Directory Discovery"
+	techniqueID := "T1083"
+
+	switch action {
+	case "LIST_DIR", "STAT", "READLINK":
+		tactic = "Discovery"
+		technique = "File and Directory Discovery"
+		techniqueID = "T1083"
+	case "UPLOAD":
+		tactic = "Persistence"
+		technique = "Upload Malware / Tools"
+		techniqueID = "T1105" // Ingress Tool Transfer
+	case "DOWNLOAD":
+		tactic = "Exfiltration"
+		technique = "Data from Local System"
+		techniqueID = "T1005"
+	case "DELETE", "RMDIR":
+		tactic = "Impact"
+		technique = "Data Destruction"
+		techniqueID = "T1485"
+	case "RENAME", "MKDIR":
+		tactic = "Defense Evasion"
+		technique = "Masquerading / File Modification"
+		techniqueID = "T1036"
+	}
+
+	event := &SCPCTIEvent{
+		Timestamp:      time.Now().UTC().Format(time.RFC3339Nano),
+		SensorID:       hostname,
+		EventType:      "SFTP_FILE_ACTIVITY",
+		Status:         status,
+		FailureReason:  reason,
+		ClientIP:       clientIP,
+		ClientPort:     clientPort,
+		Username:       username,
+		ClientVersion:  clientVer,
+		ParticipantNum: participantNum,
+		FileActivity: &FileActivity{
+			Action: action,
+			Path:   path,
+			Target: target,
+			Size:   size,
+		},
+		Mitre: MitreAttackInfo{
+			Tactic:    tactic,
 			Technique: technique,
 			ID:        techniqueID,
 		},

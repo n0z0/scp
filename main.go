@@ -90,7 +90,16 @@ func main() {
 				go PlayNotificationSound(peserta)
 				go NotifikasiDesktop("Berhasil Login", c.User()+" : Siswa "+strconv.Itoa(peserta))
 
-				return nil, nil
+				// Simpan metadata sesi ke Permissions.Extensions untuk audit CTI aktivitas file
+				perms := &ssh.Permissions{
+					Extensions: map[string]string{
+						"client_ip":          remoteHost,
+						"client_port":        remotePortStr,
+						"client_ver":         clientVer,
+						"participant_number": strconv.Itoa(peserta),
+					},
+				}
+				return perms, nil
 			}
 
 			log.Printf("%s Authentication failed for user %s: invalid password %s", storedPassword, c.User(), string(pass))

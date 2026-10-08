@@ -25,6 +25,8 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig) {
 	log.Printf("New SSH connection from %s (%s)", sshConn.RemoteAddr(), sshConn.ClientVersion())
 	go ssh.DiscardRequests(reqs)
 
+	sessionMeta := parseSessionMeta(sshConn.User(), sshConn.Permissions.Extensions)
+
 	for newChannel := range chans {
 		if newChannel.ChannelType() != "session" {
 			newChannel.Reject(ssh.UnknownChannelType, "unsupported channel type")
@@ -42,7 +44,7 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig) {
 				// payload[0..3] = uint32(len("sftp"))
 				if req.Type == "subsystem" && len(req.Payload) >= 4 && string(req.Payload[4:]) == "sftp" {
 					req.Reply(true, nil)
-					handleSFTP(channel)
+					handleSFTP(channel, sessionMeta)
 				} else {
 					req.Reply(false, nil)
 				}
@@ -51,19 +53,16 @@ func handleConn(conn net.Conn, config *ssh.ServerConfig) {
 	}
 }
 
-func handleSFTP(channel ssh.Channel) {
-	server, err := sftp.NewServer(channel)
-	if err != nil {
-		log.Printf("Failed to create SFTP server: %v", err)
-		return
-	}
+func handleSFTP(channel ssh.Channel, meta *SessionMeta) {
+	handlers := newCTIFileHandler(meta)
+	server := sftp.NewRequestServer(channel, handlers)
 	defer server.Close()
 
-	log.Println("SFTP session started")
+	log.Printf("SFTP session started for user %s", meta.Username)
 	if err := server.Serve(); err == nil {
-		log.Println("SFTP session closed")
+		log.Printf("SFTP session closed for user %s", meta.Username)
 	} else {
-		log.Printf("SFTP server completed with error: %v", err)
+		log.Printf("SFTP server completed with error for user %s: %v", meta.Username, err)
 	}
 }
 

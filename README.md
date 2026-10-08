@@ -35,15 +35,20 @@ flowchart LR
 
 ## Cyber Threat Intelligence (CTI) Logging
 
-Setiap interaksi login (berhasil maupun gagal) otomatis dicatat ke file **`scp_cti.jsonl`** dalam format JSON Lines yang siap di-ingest ke SIEM, Elastic, Wazuh, atau MISP/OpenCTI.
+Setiap interaksi otentikasi login maupun **aktivitas file di dalam sesi SFTP** (melihat direktori, download, upload, edit, hapus, rename) otomatis dicatat ke file **`scp_cti.jsonl`** dalam format JSON Lines yang siap di-ingest ke SIEM, Elastic, Wazuh, atau MISP/OpenCTI.
 
 Log ini memetakan event ke taktik dan teknik **MITRE ATT&CK**:
 - **Login Berhasil:** `Valid Accounts` (`T1078`), Tactic: `Initial Access`.
-- **Login Gagal:** `Brute Force: Password Guessing` (`T1110.001`), Tactic: `Credential Access` / `Initial Access`.
+- **Login Gagal:** `Brute Force: Password Guessing` (`T1110.001`), Tactic: `Credential Access`.
+- **Melihat Direktori / Stat:** `File and Directory Discovery` (`T1083`), Tactic: `Discovery`.
+- **Upload / Edit File:** `Ingress Tool Transfer / Upload Tools` (`T1105`), Tactic: `Persistence`.
+- **Download File:** `Data from Local System` (`T1005`), Tactic: `Exfiltration`.
+- **Hapus File / Folder:** `Data Destruction` (`T1485`), Tactic: `Impact`.
+- **Rename File / Buat Folder:** `Masquerading` (`T1036`), Tactic: `Defense Evasion`.
 
 ### Contoh Format Log CTI (`scp_cti.jsonl`)
 
-**Percobaan Login Berhasil:**
+**1. Percobaan Login Berhasil:**
 ```json
 {
   "timestamp": "2026-10-08T02:08:15.123456789Z",
@@ -64,10 +69,60 @@ Log ini memetakan event ke taktik dan teknik **MITRE ATT&CK**:
 }
 ```
 
-**Percobaan Login Gagal:**
+**2. Melihat Isi Direktori (Reconnaissance Pasif):**
 ```json
 {
-  "timestamp": "2026-10-08T02:08:20.987654321Z",
+  "timestamp": "2026-10-08T02:08:18.451234567Z",
+  "sensor_id": "honeypot-node-1",
+  "event_type": "SFTP_FILE_ACTIVITY",
+  "status": "success",
+  "client_ip": "192.168.1.150",
+  "client_port": 54321,
+  "username": "192.168.1.150",
+  "client_version": "SSH-2.0-OpenSSH_9.6",
+  "participant_number": 20,
+  "file_activity": {
+    "action": "LIST_DIR",
+    "path": "/",
+    "size_bytes": 5
+  },
+  "mitre_attack": {
+    "tactic": "Discovery",
+    "technique": "File and Directory Discovery",
+    "technique_id": "T1083"
+  }
+}
+```
+
+**3. Upload / Menaruh File (Misal Penyerang Menaruh Payload):**
+```json
+{
+  "timestamp": "2026-10-08T02:08:22.991283123Z",
+  "sensor_id": "honeypot-node-1",
+  "event_type": "SFTP_FILE_ACTIVITY",
+  "status": "success",
+  "client_ip": "192.168.1.150",
+  "client_port": 54321,
+  "username": "192.168.1.150",
+  "client_version": "SSH-2.0-OpenSSH_9.6",
+  "participant_number": 20,
+  "file_activity": {
+    "action": "UPLOAD",
+    "path": "/flag.txt",
+    "size_bytes": 1024
+  },
+  "mitre_attack": {
+    "tactic": "Persistence",
+    "technique": "Upload Malware / Tools",
+    "technique_id": "T1105"
+  }
+}
+```
+
+**4. Percobaan Login Gagal:**
+```json
+{
+  "timestamp": "2026-10-08T02:08:25.987654321Z",
   "sensor_id": "honeypot-node-1",
   "event_type": "SFTP_AUTH_FAILED",
   "status": "failed",

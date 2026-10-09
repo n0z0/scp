@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/faiface/beep v1.1.0
 	github.com/gen2brain/beeep v0.11.1
-	github.com/n0z0/cachedb v0.1.6
+	github.com/n0z0/cachedb v0.1.13
 	github.com/pkg/sftp v1.13.10
 	golang.org/x/crypto v0.45.0
 )
@@ -33,5 +33,3 @@ require (
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
-
-replace github.com/n0z0/cachedb => ../cachedb

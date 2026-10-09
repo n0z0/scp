@@ -46,8 +46,8 @@ github.com/lucasb-eyer/go-colorful v1.0.2/go.mod h1:0MS4r+7BZKSJ5mw4/S5MPN+qHFF1
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/mewkiz/flac v1.0.7/go.mod h1:yU74UH277dBUpqxPouHSQIar3G1X/QIclVbFahSd1pU=
 github.com/mewkiz/pkg v0.0.0-20190919212034-518ade7978e2/go.mod h1:3E2FUC/qYUfM8+r9zAwpeHJzqRVVMIYnpzD/clwWxyA=
-github.com/n0z0/cachedb v0.1.6 h1:qk5AG2sDz6IIh/31bLc5CmbBO6Qmzf5ChS+EZgbEsSQ=
-github.com/n0z0/cachedb v0.1.6/go.mod h1:HRQE3RFhXrqpCHQ8bP0fj+2I53zdNyEcD9Dlcsd2F5A=
+github.com/n0z0/cachedb v0.1.13 h1:BhD1JP8RFpkY4QcxAJ2tWBLQ8ayJ+EUIULJOR5OwtyI=
+github.com/n0z0/cachedb v0.1.13/go.mod h1:HRQE3RFhXrqpCHQ8bP0fj+2I53zdNyEcD9Dlcsd2F5A=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

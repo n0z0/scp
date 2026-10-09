@@ -38,6 +38,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Bersihkan replace directive lokal
+        run: go mod edit -dropreplace github.com/n0z0/cachedb || true
+
       - name: Pasang dependensi audio Linux (ALSA)
         run: |
           sudo apt-get update
